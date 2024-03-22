@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageDraw
 import torch
 from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
 import easyocr
@@ -7,10 +7,14 @@ import numpy as np
 
 def choose_box(request):
     request_json = request.get_json(silent=True)
-    target_image_path = request_json['target_image_path']
-    query_image_path = request_json['query_image_path']
-    text_to_search = request_json['text_to_search']
-    
+    if request_json and 'message' in request_json:
+        message = request_json['message']
+        target_image_path = message.get('target_image_path')
+        query_image_path = message.get('query_image_path')
+        text_to_search = message.get('text_to_search')
+    else:
+        return 'Invalid request payload', 400
+
     # Check if all required arguments are present
     if not all([target_image_path, query_image_path, text_to_search]):
         return 'Please provide all three strings: target_image_path, query_image_path, text_to_search', 400
