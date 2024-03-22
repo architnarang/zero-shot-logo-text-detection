@@ -1,10 +1,18 @@
-from PIL import Image, ImageDraw
+from PIL import Image
 import torch
 from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
 import easyocr
 import numpy as np
 
-def choose_box(target_image_path, query_image_path, text_to_search):
+
+def choose_box(request_json):
+    target_image_path = request_json.get('target_image_path')
+    query_image_path = request_json.get('query_image_path')
+    text_to_search = request_json.get('text_to_search')
+    
+    # Check if all required arguments are present
+    if not all([target_image_path, query_image_path, text_to_search]):
+        return 'Please provide all three strings: target_image_path, query_image_path, text_to_search', 400
     
     # Load the images
     image_target = Image.open(target_image_path).convert("RGB")
@@ -33,7 +41,7 @@ def choose_box(target_image_path, query_image_path, text_to_search):
     filtered_scores = scores[mask]
     filtered_boxes = boxes[mask]
 
-    draw = ImageDraw.Draw(resized_target)
+    #draw = ImageDraw.Draw(resized_target)
 
     # Set the number of top boxes to consider
     n = min(len(filtered_boxes), 4)
@@ -51,19 +59,19 @@ def choose_box(target_image_path, query_image_path, text_to_search):
     # Sort the boxes based on their areas
     sorted_indices = sorted(range(len(areas)), key=lambda k: areas[k])
 
-    # Draw all bounding boxes
-    for box, score in zip(filtered_boxes.tolist(), filtered_scores.tolist()):
-        xmin, ymin, xmax, ymax = box
-        draw.rectangle((xmin, ymin, xmax, ymax), outline="black", width=4)
-        draw.text((xmin, ymin), f"Score: {score}", fill="black")
+    # # Draw all bounding boxes
+    # for box, score in zip(filtered_boxes.tolist(), filtered_scores.tolist()):
+    #     xmin, ymin, xmax, ymax = box
+    #     draw.rectangle((xmin, ymin, xmax, ymax), outline="black", width=4)
+    #     draw.text((xmin, ymin), f"Score: {score}", fill="black")
 
     # Draw the bounding box with the least area in red
     chosen_index = sorted_indices[0]
     chosen_box = top_boxes[chosen_index]
     chosen_score = top_scores[chosen_index]
     xmin, ymin, xmax, ymax = chosen_box
-    draw.rectangle((xmin, ymin, xmax, ymax), outline="red", width=4)
-    draw.text((xmin, ymin), f"Top Score: {chosen_score}", fill="red")
+    # draw.rectangle((xmin, ymin, xmax, ymax), outline="red", width=4)
+    # draw.text((xmin, ymin), f"Top Score: {chosen_score}", fill="red")
 
     # Using EasyOCR to find text in the target image
     reader = easyocr.Reader(['en'])
@@ -84,9 +92,7 @@ def choose_box(target_image_path, query_image_path, text_to_search):
     # Return the resized target image along with the coordinates of the chosen box and text
     return output_data
 
-# # Example usage
-# target_image_path = "/image_samples/logo1.png"
-# query_image_path = "/image_samples/query1.png"
-# text_to_search = "Sinai"
-
-# print(choose_box(target_image_path, query_image_path, text_to_search))
+#example usage
+request = {"target_image_path": "/content/drive/MyDrive/cosmos_group/logo1.png", "query_image_path": "/content/drive/MyDrive/cosmos_group/query1.png", "text_to_search": "Sinai"}
+output_data = choose_box(request)
+print(output_data)
